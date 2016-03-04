@@ -215,11 +215,23 @@ public class WSSampler extends AbstractJavaSamplerClient
  							SampleResult sub = new SampleResult();
  							sub.sampleStart();
  							String label = "action";
- 							int actionIndex = message.indexOf("\"event\":\"");
+ 							int actionIndex = message.indexOf("\"formname\":\"");
  							if (actionIndex >0)
  							{
- 								label = message.substring(actionIndex+9, message.indexOf("\"", actionIndex+10));
+ 								label = message.substring(actionIndex+12, message.indexOf("\"", actionIndex+12));
  							}	
+ 							
+ 							actionIndex = message.indexOf("\"beanname\":\"");
+ 							if (actionIndex >0)
+ 							{
+ 								label += ":"+message.substring(actionIndex+12, message.indexOf("\"", actionIndex+12));
+ 							}
+ 							
+ 							actionIndex = message.indexOf("\"event\":\"");
+ 							if (actionIndex >0)
+ 							{
+ 								label += ":"+message.substring(actionIndex+9, message.indexOf("\"", actionIndex+10));
+ 							}
  							sub.setSampleLabel(label);
  							startedActions.put(clientMessageId, sub);
  		 				}
