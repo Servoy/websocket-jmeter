@@ -90,7 +90,16 @@ public class WSSampler extends AbstractJavaSamplerClient
         if (response_message != null) {
             rv.setResponseData(response_message.getBytes());
         }
-        rv.sampleEnd();
+        
+        // TODO this is a sample how sub result can work
+        SampleResult sub = new SampleResult();
+        sub.setSampleLabel("test label");
+        sub.setSampleCount(10);
+        sub.setSamplerData("tst data");
+        sub.setStampAndTime(System.currentTimeMillis(), 500);
+        sub.setSuccessful(true);
+        rv.addSubResult(sub);
+//        rv.sampleEnd();
         return rv;
     }
  
