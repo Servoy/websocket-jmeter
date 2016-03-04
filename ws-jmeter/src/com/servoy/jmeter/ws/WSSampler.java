@@ -127,8 +127,9 @@ public class WSSampler extends AbstractJavaSamplerClient
 			if (startedActions.containsKey(receivedMsgKey))
 			{
 				SampleResult subResult = startedActions.remove(receivedMsgKey);
-				subResult.sampleEnd();
 				subResult.setSuccessful(true);
+				subResult.sampleEnd();
+				testResult.addSubResult(subResult);
 			}	
 			receivedServerIds.add(receivedMsgKey);
 			try
@@ -219,7 +220,7 @@ public class WSSampler extends AbstractJavaSamplerClient
  								label = message.substring(actionIndex+9, message.indexOf("\"", actionIndex+10));
  							}	
  							sub.setSampleLabel(label);
- 							testResult.addSubResult(sub);
+ 							startedActions.put(clientMessageId, sub);
  		 				}
  					}	
  					logger.info("Sending ...." + clientMessage);
