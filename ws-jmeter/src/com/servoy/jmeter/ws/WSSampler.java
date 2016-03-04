@@ -14,8 +14,10 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -43,6 +45,9 @@ public class WSSampler extends AbstractJavaSamplerClient
 	private Logger logger = Logger.getLogger("WSSampler");
 	private List<String> receivedServerIds = new ArrayList<String>(); 
  
+	private SampleResult testResult;
+	private Map<String,SampleResult> startedActions;
+	
     @Override
     public Arguments getDefaultParameters() {
         Arguments params = new Arguments();
@@ -73,8 +78,9 @@ public class WSSampler extends AbstractJavaSamplerClient
  
     @Override
     public SampleResult runTest(JavaSamplerContext javaSamplerContext) {
-        SampleResult rv = new SampleResult();
-        rv.sampleStart();
+        testResult = new SampleResult();
+        testResult.sampleStart();
+        startedActions = new HashMap<String,SampleResult>();
         latch = new CountDownLatch(1);
  
         ClientManager client = ClientManager.createClient();
@@ -84,23 +90,14 @@ public class WSSampler extends AbstractJavaSamplerClient
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
-        rv.setSuccessful(true);
-        rv.setResponseMessage(response_message);
-        rv.setResponseCode("200");
+        testResult.setSuccessful(true);
+        testResult.setResponseMessage(response_message);
+        testResult.setResponseCode("200");
         if (response_message != null) {
-            rv.setResponseData(response_message.getBytes());
+        	testResult.setResponseData(response_message.getBytes());
         }
         
-        // TODO this is a sample how sub result can work
-        SampleResult sub = new SampleResult();
-        sub.setSampleLabel("test label");
-        sub.setSampleCount(10);
-        sub.setSamplerData("tst data");
-        sub.setStampAndTime(System.currentTimeMillis(), 500);
-        sub.setSuccessful(true);
-        rv.addSubResult(sub);
-//        rv.sampleEnd();
-        return rv;
+        return testResult;
     }
  
     @OnOpen
@@ -127,6 +124,12 @@ public class WSSampler extends AbstractJavaSamplerClient
 
 		if (receivedMsgKey != null) {
 			
+			if (startedActions.containsKey(receivedMsgKey))
+			{
+				SampleResult subResult = startedActions.remove(receivedMsgKey);
+				subResult.sampleEnd();
+				subResult.setSuccessful(true);
+			}	
 			receivedServerIds.add(receivedMsgKey);
 			try
 			{
@@ -202,6 +205,23 @@ public class WSSampler extends AbstractJavaSamplerClient
  				}
  				else
  				{
+ 					if (clientMessage.contains("executeEvent"))
+ 					{
+ 						String clientMessageId = getClientMessageId(message);
+ 						if (clientMessageId != null)
+ 		 				{
+ 							SampleResult sub = new SampleResult();
+ 							sub.sampleStart();
+ 							String label = "action";
+ 							int actionIndex = message.indexOf("\"event\":\"");
+ 							if (actionIndex >0)
+ 							{
+ 								label = message.substring(actionIndex+1, message.indexOf("\"", actionIndex+10));
+ 							}	
+ 							sub.setSampleLabel(label);
+ 							testResult.addSubResult(sub);
+ 		 				}
+ 					}	
  					logger.info("Sending ...." + clientMessage);
  					session.getBasicRemote().sendText(clientMessage);
  				}	
