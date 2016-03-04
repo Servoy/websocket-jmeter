@@ -46,18 +46,17 @@ public class WSSampler extends AbstractJavaSamplerClient
     @Override
     public Arguments getDefaultParameters() {
         Arguments params = new Arguments();
-        params.addArgument("URI", "ws://localhost:8080/websocket/null/null/null?solution=test_components&f=test_crosstab");
+        params.addArgument("URI", "ws://localhost:8080/websocket/null/null/null?solution=Test");
         params.addArgument("TestCaseFile", "reqResConfig.txt");
         params.addArgument("WaitingTime", "5,2,3,4,5");
         return params;
     }
  
- 
     @Override
     public void setupTest(JavaSamplerContext context) {
         ws_uri = context.getParameter("URI");
         
-        File testCaseFile = new File("TestCaseFile"); 
+        File testCaseFile = new File(context.getParameter("TestCaseFile")); 
         reqRes = new RecordingParser().getMessageQueue(testCaseFile);
         
         String waitingTime = context.getParameter("WaitingTime");//waiting time for each action
