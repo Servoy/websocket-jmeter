@@ -216,7 +216,7 @@ public class WSSampler extends AbstractJavaSamplerClient
  							int actionIndex = message.indexOf("\"event\":\"");
  							if (actionIndex >0)
  							{
- 								label = message.substring(actionIndex+1, message.indexOf("\"", actionIndex+10));
+ 								label = message.substring(actionIndex+9, message.indexOf("\"", actionIndex+10));
  							}	
  							sub.setSampleLabel(label);
  							testResult.addSubResult(sub);
