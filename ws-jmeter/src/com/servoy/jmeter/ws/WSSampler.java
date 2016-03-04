@@ -36,10 +36,10 @@ public class WSSampler extends AbstractJavaSamplerClient
 	private static final Pattern pcmsgid = Pattern.compile(CMSGIDPATTERN);
 
 
-	private static String ws_uri;
-	private static String response_message;
+	private String ws_uri;
+	private String response_message;
 	private List<Long> waitingTimes;
-	private static CountDownLatch latch;
+	private CountDownLatch latch;
  
 	private ArrayList<String> reqRes;
 	private Logger logger = Logger.getLogger("WSSampler");
@@ -86,10 +86,11 @@ public class WSSampler extends AbstractJavaSamplerClient
         ClientManager client = ClientManager.createClient();
         try {
             client.connectToServer(this, new URI(ws_uri));
-            latch.await(waitingTimes.get(0), TimeUnit.SECONDS); //TODO we need to identify which message (number)/action is this
+            latch.await();
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
+        
         testResult.setSuccessful(true);
         testResult.setResponseMessage(response_message);
         testResult.setResponseCode("200");

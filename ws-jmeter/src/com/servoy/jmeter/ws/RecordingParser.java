@@ -39,9 +39,6 @@ public class RecordingParser {
 		if (file != null && file.exists()) {
 			BufferedReader stream = null;
 			try {
-
-				String initialClientMessage = ">{\"msg\":{\"sessionid\":\"c6b2ff4f-2cb2-4b94-9352-cdcf9a5c4e4c\",\"windowid\":\"0c91ce7f-9a2b-49f8-a2d5-559f25be7bd4\"}}";
-				messagesQueue.add(initialClientMessage);
 				// Open the stream
 				stream = new BufferedReader(new FileReader(file));
 
