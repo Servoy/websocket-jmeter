@@ -79,7 +79,7 @@ public class WSSampler extends AbstractJavaSamplerClient
  
         ClientManager client = ClientManager.createClient();
         try {
-            client.connectToServer(WSSampler.class, new URI(ws_uri));
+            client.connectToServer(this, new URI(ws_uri));
             latch.await(waitingTimes.get(0), TimeUnit.SECONDS); //TODO we need to identify which message (number)/action is this
         } catch (Throwable e) {
             throw new RuntimeException(e);
