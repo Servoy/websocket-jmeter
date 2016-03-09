@@ -1,18 +1,10 @@
 package com.servoy.jmeter.ws;
 
-import org.apache.jmeter.config.Arguments;
-import org.apache.jmeter.protocol.java.sampler.AbstractJavaSamplerClient;
-import org.apache.jmeter.protocol.java.sampler.JavaSamplerContext;
-import org.apache.jmeter.samplers.SampleResult;
-import org.glassfish.tyrus.client.ClientManager;
-
-import javax.websocket.*;
-import javax.websocket.CloseReason.CloseCodes;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -22,6 +14,20 @@ import java.util.concurrent.CountDownLatch;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.websocket.ClientEndpoint;
+import javax.websocket.CloseReason;
+import javax.websocket.CloseReason.CloseCodes;
+import javax.websocket.OnClose;
+import javax.websocket.OnMessage;
+import javax.websocket.OnOpen;
+import javax.websocket.Session;
+
+import org.apache.jmeter.config.Arguments;
+import org.apache.jmeter.protocol.java.sampler.AbstractJavaSamplerClient;
+import org.apache.jmeter.protocol.java.sampler.JavaSamplerContext;
+import org.apache.jmeter.samplers.SampleResult;
+import org.glassfish.tyrus.client.ClientManager;
  
  
 @ClientEndpoint
@@ -40,12 +46,13 @@ public class WSSampler extends AbstractJavaSamplerClient
 	private List<Long> waitingTimes;
 	private CountDownLatch latch;
  
-	private ArrayList<String> reqRes;
+	private List<String> reqRes;
 	private Logger logger = Logger.getLogger("WSSampler");
-	private List<String> receivedServerIds = new ArrayList<String>(); 
+	private List<String> receivedServerIds = Collections.synchronizedList(new ArrayList<String>()); 
  
 	private SampleResult testResult;
 	private Map<String,SampleResult> startedActions;
+	private boolean firstTime = true;
 	
     @Override
     public Arguments getDefaultParameters() {
@@ -78,8 +85,7 @@ public class WSSampler extends AbstractJavaSamplerClient
     @Override
     public SampleResult runTest(JavaSamplerContext javaSamplerContext) {
         testResult = new SampleResult();
-        testResult.sampleStart();
-        startedActions = new HashMap<String,SampleResult>();
+        startedActions = Collections.synchronizedMap(new HashMap<String,SampleResult>());
         latch = new CountDownLatch(1);
  
         ClientManager client = ClientManager.createClient();
@@ -96,7 +102,6 @@ public class WSSampler extends AbstractJavaSamplerClient
         if (response_message != null) {
         	testResult.setResponseData(response_message.getBytes());
         }
-        
         return testResult;
     }
  
@@ -105,7 +110,8 @@ public class WSSampler extends AbstractJavaSamplerClient
     	logger.info("Connected ... " + session.getId());
 		try
 		{
-			processQueue(session);
+			testResult.sampleStart();
+//			processQueue(session);
 		}
 		catch(Exception e)
 		{
@@ -117,8 +123,7 @@ public class WSSampler extends AbstractJavaSamplerClient
     @OnMessage
     public String onMessage(String message, Session session) 
     {
-    	logger.info("Received ...." + message);
-
+//    	logger.info(session.getId() + ":   Received ...." + message);
 		// check and extract the cmsgid or smsgid from the server messages
 		String receivedMsgKey = getMessageId(message);
 
@@ -132,6 +137,7 @@ public class WSSampler extends AbstractJavaSamplerClient
 				testResult.addSubResult(subResult);
 			}	
 			receivedServerIds.add(receivedMsgKey);
+//			logger.info(session.getId() + ":   Received ...." + message);
 			try
 			{
 				processQueue(session);
@@ -141,6 +147,24 @@ public class WSSampler extends AbstractJavaSamplerClient
 				logger.severe("Unexpected error: "+ e);
 				e.printStackTrace();
 			}
+		}
+		if (firstTime) {
+//	    	try {
+//				Thread.sleep(500);
+//			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+//				e1.printStackTrace();
+//			}
+			try
+			{
+				processQueue(session);
+			}
+			catch(Exception e)
+			{
+				logger.severe("Unexpected error: "+ e);
+				e.printStackTrace();
+			}
+			firstTime = false;
 		}
     	return response_message; //TODO need to return some string here
     }
@@ -194,7 +218,7 @@ public class WSSampler extends AbstractJavaSamplerClient
  				{
  					if (receivedServerIds.contains(id))
  					{
- 						logger.info("Sending ...." + clientMessage);
+// 						logger.info(session.getId() + ":   Sending server request...." + clientMessage);
  						session.getBasicRemote().sendText(clientMessage);
  						receivedServerIds.remove(id);
  					}
@@ -211,6 +235,10 @@ public class WSSampler extends AbstractJavaSamplerClient
  						String clientMessageId = getClientMessageId(message);
  						if (clientMessageId != null)
  		 				{
+ 							// TODO make a sleep here that is defined in the arguments 
+// 							testResult.samplePause();
+// 							Thread.sleep(200);
+// 							testResult.sampleResume();
  							SampleResult sub = new SampleResult();
  							sub.sampleStart();
  							String label = "action";
@@ -235,7 +263,7 @@ public class WSSampler extends AbstractJavaSamplerClient
  							startedActions.put(clientMessageId, sub);
  		 				}
  					}	
- 					logger.info("Sending ...." + clientMessage);
+// 	 				logger.info(session.getId() + ":   Sending normal...." + clientMessage);
  					session.getBasicRemote().sendText(clientMessage);
  				}	
  			}
@@ -264,14 +292,15 @@ public class WSSampler extends AbstractJavaSamplerClient
  		} catch (IOException e) {
  			throw new RuntimeException(e);
  		}
- 		logger.info("Load test ended : " + new Date());
+ 		logger.info("Load test ended : " + new Date() + " id " + session.getId());
+ 		if (latch.getCount() > 0) latch.countDown();
  	}
 
  
     @OnClose
     public void onClose(Session session, CloseReason closeReason) {
     	logger.info(String.format("Session %s close because of %s", session.getId(), closeReason));
-		latch.countDown();
+    	if (latch.getCount() > 0) latch.countDown();
     }
  
  
