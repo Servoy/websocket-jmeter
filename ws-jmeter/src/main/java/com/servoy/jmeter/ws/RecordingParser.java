@@ -14,10 +14,15 @@ public class RecordingParser {
 	private final ArrayList<String> messagesQueue = new ArrayList<String>();
 	// private static final HashMap<String, String[]> reqResValues = new
 	// HashMap<String, String[]>();
-	private static final String CMSGIDPATTERN = "\"cmsgid\":.";
-	private static final String SMSGIDPATTERN = "\"smsgid\":.";
-	private static final Pattern psmsgid = Pattern.compile(SMSGIDPATTERN);
-	private static final Pattern pcmsgid = Pattern.compile(CMSGIDPATTERN);
+	public static final String CMSGIDPATTERN = "\"cmsgid\":[0-9]{1,10}";
+	public static final String SMSGIDPATTERN = "\"smsgid\":[0-9]{1,10}";
+	public static final String DEFIDPATTERN = "\"defid\":([0-9]{1,10})";
+	public static final String DEFID_RETURN_PATTERN = "\"resolveDeferedEvent\",\"args\":\\[([0-9]{1,10})";
+	
+	public static final Pattern PSMSGID = Pattern.compile(SMSGIDPATTERN);
+	public static final Pattern PCMSGID = Pattern.compile(CMSGIDPATTERN);
+	public static final Pattern PDEFID = Pattern.compile(DEFIDPATTERN);
+	public static final Pattern PDEFID_RETIURN = Pattern.compile(DEFID_RETURN_PATTERN);
 	// private static final String keySign ="#@#";
 	// private static final String valueSign ="##";
 
@@ -46,7 +51,7 @@ public class RecordingParser {
 
 				String line;
 				while ((line = stream.readLine()) != null) {
-					if (checkIfSmsgsidIsPresent(line) || checkIfCmsgsidIsPresent(line) || line.startsWith(">")) {
+					if (line.startsWith(">") || checkIfSmsgsidIsPresent(line) || checkIfCmsgsidIsPresent(line) || checkIfDefidIsPresent(line)) {
 						messagesQueue.add(line);
 					}
 
@@ -72,7 +77,7 @@ public class RecordingParser {
 	}
 
 	public static boolean checkIfSmsgsidIsPresent(String message) {
-		Matcher msmsgid = psmsgid.matcher(message);
+		Matcher msmsgid = PSMSGID.matcher(message);
 		if (msmsgid.find()) {
 			return true;
 		} else {
@@ -81,11 +86,20 @@ public class RecordingParser {
 	}
 
 	public static boolean checkIfCmsgsidIsPresent(String message) {
-		Matcher msmsgid = pcmsgid.matcher(message);
+		Matcher msmsgid = PCMSGID.matcher(message);
 		if (msmsgid.find()) {
 			return true;
 		} else {
 			return false;
+		}
+	}
+	
+	public static boolean checkIfDefidIsPresent(String message) {
+		Matcher msmsgid = PDEFID.matcher(message);
+		if (msmsgid.find()) {
+			return true;
+		} else {
+			return PDEFID_RETIURN.matcher(message).find();
 		}
 	}
 }
